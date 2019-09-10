@@ -7,20 +7,22 @@
 @author: liangliangyy
 @license: MIT Licence 
 @contact: liangliangyy@gmail.com
-@site: https://www.lylinux.org/
+@site: https://www.lylinux.net/
 @software: PyCharm
 @file: user_login_backend.py
 @time: 2017/2/17 下午8:45
 """
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.contrib.auth.backends import ModelBackend
 
 
-class EmailOrUsernameModelBackend(object):
+class EmailOrUsernameModelBackend(ModelBackend):
     """
     允许使用用户名或邮箱登录
     """
-    def authenticate(self, username=None, password=None):
+
+    def authenticate(self, request, username=None, password=None, **kwargs):
         if '@' in username:
             kwargs = {'email': username}
         else:

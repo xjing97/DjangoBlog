@@ -7,13 +7,14 @@
 @author: liangliangyy
 @license: MIT Licence
 @contact: liangliangyy@gmail.com
-@site: https://www.lylinux.org/
+@site: https://www.lylinux.net/
 @software: PyCharm
 @file: blog_tags.py
 @time: 2016/11/2 下午11:10
 """
 
 from django import template
+from django.db.models import Q
 from django.conf import settings
 from django.template.defaultfilters import stringfilter
 from django.utils.safestring import mark_safe
@@ -25,9 +26,13 @@ from django.shortcuts import get_object_or_404
 import hashlib
 import urllib
 from comments.models import Comment
-from DjangoBlog.utils import cache_decorator, logger
+from DjangoBlog.utils import cache_decorator, cache
 from django.contrib.auth import get_user_model
 from oauth.models import OAuthUser
+from DjangoBlog.utils import get_current_site
+import logging
+
+logger = logging.getLogger(__name__)
 
 register = template.Library()
 
@@ -38,7 +43,8 @@ def timeformat(data):
         return data.strftime(settings.TIME_FORMAT)
         # print(data.strftime(settings.TIME_FORMAT))
         # return "ddd"
-    except:
+    except Exception as e:
+        logger.error(e)
         return ""
 
 
@@ -46,7 +52,8 @@ def timeformat(data):
 def datetimeformat(data):
     try:
         return data.strftime(settings.DATE_TIME_FORMAT)
-    except:
+    except Exception as e:
+        logger.error(e)
         return ""
 
 
@@ -66,8 +73,9 @@ def truncatechars_content(content):
     :return:
     """
     from django.template.defaultfilters import truncatechars_html
-
-    return truncatechars_html(content, settings.ARTICLE_SUB_LENGTH)
+    from DjangoBlog.utils import get_blog_setting
+    blogsetting = get_blog_setting()
+    return truncatechars_html(content, blogsetting.article_sub_length)
 
 
 @register.filter(is_safe=True)
@@ -86,8 +94,10 @@ def load_breadcrumb(article):
     :return:
     """
     names = article.get_category_tree()
-
-    names.append((settings.SITE_NAME, settings.SITE_URL))
+    from DjangoBlog.utils import get_blog_setting
+    blogsetting = get_blog_setting()
+    site = get_current_site().domain
+    names.append((blogsetting.sitename, '/'))
     names = names[::-1]
 
     return {
@@ -117,40 +127,46 @@ def load_articletags(article):
 
 
 @register.inclusion_tag('blog/tags/sidebar.html')
-def load_sidebar(user):
+def load_sidebar(user, linktype):
     """
     加载侧边栏
     :return:
     """
     logger.info('load sidebar')
-    recent_articles = Article.objects.filter(status='p')[:settings.SIDEBAR_ARTICLE_COUNT]
+    from DjangoBlog.utils import get_blog_setting
+    blogsetting = get_blog_setting()
+    recent_articles = Article.objects.filter(status='p')[:blogsetting.sidebar_article_count]
     sidebar_categorys = Category.objects.all()
     extra_sidebars = SideBar.objects.filter(is_enable=True).order_by('sequence')
-    most_read_articles = Article.objects.filter(status='p').order_by('-views')[:settings.SIDEBAR_ARTICLE_COUNT]
+    most_read_articles = Article.objects.filter(status='p').order_by('-views')[:blogsetting.sidebar_article_count]
     dates = Article.objects.datetimes('created_time', 'month', order='DESC')
-    links = Links.objects.all()
-    commment_list = Comment.objects.filter(is_enable=True).order_by('-id')[:settings.SIDEBAR_COMMENT_COUNT]
-    show_adsense = settings.SHOW_GOOGLE_ADSENSE
+    links = Links.objects.filter(is_enable=True).filter(Q(show_type=str(linktype)) | Q(show_type='a'))
+    commment_list = Comment.objects.filter(is_enable=True).order_by('-id')[:blogsetting.sidebar_comment_count]
     # 标签云 计算字体大小
     # 根据总数计算出平均值 大小为 (数目/平均值)*步长
     increment = 5
     tags = Tag.objects.all()
     sidebar_tags = None
     if tags and len(tags) > 0:
-        s = list(map(lambda t: (t, t.get_article_count()), tags))
-        count = sum(map(lambda t: t[1], s))
-        dd = 1 if count == 0 else count / len(tags)
+        s = [t for t in [(t, t.get_article_count()) for t in tags] if t[1]]
+        count = sum([t[1] for t in s])
+        dd = 1 if (count == 0 or not len(tags)) else count / len(tags)
+        import random
         sidebar_tags = list(map(lambda x: (x[0], x[1], (x[1] / dd) * increment + 10), s))
+        random.shuffle(sidebar_tags)
 
     return {
         'recent_articles': recent_articles,
         'sidebar_categorys': sidebar_categorys,
         'most_read_articles': most_read_articles,
         'article_dates': dates,
-        'sidabar_links': links,
         'sidebar_comments': commment_list,
         'user': user,
-        'show_adsense': show_adsense,
+        'sidabar_links': links,
+        'show_google_adsense': blogsetting.show_google_adsense,
+        'google_adsense_codes': blogsetting.google_adsense_codes,
+        'open_site_comment': blogsetting.open_site_comment,
+        'show_gongan_code': blogsetting.show_gongan_code,
         'sidebar_tags': sidebar_tags,
         'extra_sidebars': extra_sidebars
     }
@@ -232,10 +248,14 @@ def load_article_detail(article, isindex, user):
     :param isindex:是否列表页，若是列表页只显示摘要
     :return:
     """
+    from DjangoBlog.utils import get_blog_setting
+    blogsetting = get_blog_setting()
+
     return {
         'article': article,
         'isindex': isindex,
-        'user': user
+        'user': user,
+        'open_site_comment': blogsetting.open_site_comment,
     }
 
 
@@ -244,21 +264,25 @@ def load_article_detail(article, isindex, user):
 @register.filter
 def gravatar_url(email, size=40):
     """获得gravatar头像"""
-    usermodels = OAuthUser.objects.filter(email=email)
-    if usermodels:
-        o = list(filter(lambda x: x.picture is not None, usermodels))
-        if o:
-            return o[0].picture
-    email = email.encode('utf-8')
+    cachekey = 'gravatat/' + email
+    if cache.get(cachekey):
+        return cache.get(cachekey)
+    else:
+        usermodels = OAuthUser.objects.filter(email=email)
+        if usermodels:
+            o = list(filter(lambda x: x.picture is not None, usermodels))
+            if o:
+                return o[0].picture
+        email = email.encode('utf-8')
 
-    default = "https://resource.lylinux.net/image/2017/03/26/120117.jpg".encode('utf-8')
+        default = "https://resource.lylinux.net/image/2017/03/26/120117.jpg".encode('utf-8')
 
-    return "https://www.gravatar.com/avatar/%s?%s" % (
-        hashlib.md5(email.lower()).hexdigest(), urllib.parse.urlencode({'d': default, 's': str(size)}))
+        url = "https://www.gravatar.com/avatar/%s?%s" % (
+            hashlib.md5(email.lower()).hexdigest(), urllib.parse.urlencode({'d': default, 's': str(size)}))
+        cache.set(cachekey, url, 60 * 60 * 10)
+        return url
 
 
-# return an image tag with the gravatar
-# TEMPLATE USE:  {{ email|gravatar:150 }}
 @register.filter
 def gravatar(email, size=40):
     """获得gravatar头像"""
@@ -275,5 +299,3 @@ def query(qs, **kwargs):
           {% endfor %}
     """
     return qs.filter(**kwargs)
-
-

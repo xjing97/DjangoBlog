@@ -7,7 +7,7 @@
 @author: liangliangyy
 @license: MIT Licence
 @contact: liangliangyy@gmail.com
-@site: https://www.lylinux.org/
+@site: https://www.lylinux.net/
 @software: PyCharm
 @file: urls.py
 @time: 2016/11/2 下午7:15
@@ -38,8 +38,10 @@ urlpatterns = [
          name='author_detail_page'),
 
     path(r'tag/<slug:tag_name>.html', views.TagDetailView.as_view(), name='tag_detail'),
-    path(r'tag/<slug:tag_name>/<int:page>).html', views.TagDetailView.as_view(), name='tag_detail_page'),
+    path(r'tag/<slug:tag_name>/<int:page>.html', views.TagDetailView.as_view(), name='tag_detail_page'),
     path('archives.html', views.ArchivesView.as_view(), name='archives'),
+    path('links.html', views.LinkListView.as_view(), name='links'),
     path(r'upload', views.fileupload, name='upload'),
     path(r'refresh', views.refresh_memcache, name='refresh')
+
 ]

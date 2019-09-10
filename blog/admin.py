@@ -1,13 +1,11 @@
-
 from django.contrib import admin
 # Register your models here.
-from .models import Article, Category, Tag, Links, SideBar
-from pagedown.widgets import AdminPagedownWidget
+from .models import Article, Category, Tag, Links, SideBar, BlogSettings
 from django import forms
 from django.contrib.auth import get_user_model
 from django.utils.translation import ugettext_lazy as _
-
-
+from django.urls import reverse
+from django.utils.html import format_html
 
 
 class ArticleListFilter(admin.SimpleListFilter):
@@ -28,7 +26,7 @@ class ArticleListFilter(admin.SimpleListFilter):
 
 
 class ArticleForm(forms.ModelForm):
-    body = forms.CharField(widget=AdminPagedownWidget())
+    # body = forms.CharField(widget=AdminPagedownWidget())
 
     class Meta:
         model = Article
@@ -58,15 +56,24 @@ open_article_commentstatus.short_description = '打开文章评论'
 
 
 class ArticlelAdmin(admin.ModelAdmin):
-    search_fields = ('body',)
+    list_per_page = 20
+    search_fields = ('body', 'title')
     form = ArticleForm
-    list_display = ('id', 'title', 'author', 'created_time', 'views', 'status', 'type')
+    list_display = (
+        'id', 'title', 'author', 'link_to_category', 'created_time', 'views', 'status', 'type', 'article_order')
     list_display_links = ('id', 'title')
     list_filter = (ArticleListFilter, 'status', 'type', 'category', 'tags')
     filter_horizontal = ('tags',)
-    exclude = ('slug', 'created_time', 'last_mod_time')
+    exclude = ('created_time', 'last_mod_time')
     view_on_site = True
     actions = [makr_article_publish, draft_article, close_article_commentstatus, open_article_commentstatus]
+
+    def link_to_category(self, obj):
+        info = (obj.category._meta.app_label, obj.category._meta.model_name)
+        link = reverse('admin:%s_%s_change' % info, args=(obj.category.id,))
+        return format_html(u'<a href="%s">%s</a>' % (link, obj.category.name))
+
+    link_to_category.short_description = '分类目录'
 
     def get_form(self, request, obj=None, **kwargs):
         form = super(ArticlelAdmin, self).get_form(request, obj, **kwargs)
@@ -75,16 +82,14 @@ class ArticlelAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         super(ArticlelAdmin, self).save_model(request, obj, form, change)
-        from DjangoBlog.utils import cache
-        cache.clear()
 
     def get_view_on_site_url(self, obj=None):
         if obj:
             url = obj.get_full_url()
             return url
         else:
-            from django.contrib.sites.models import Site
-            site = Site.objects.get_current().domain
+            from DjangoBlog.utils import get_current_site
+            site = get_current_site().domain
             return site
 
 
@@ -105,4 +110,5 @@ class SideBarAdmin(admin.ModelAdmin):
     exclude = ('last_mod_time', 'created_time')
 
 
-
+class BlogSettingsAdmin(admin.ModelAdmin):
+    pass

@@ -7,14 +7,16 @@
 @author: liangliangyy
 @license: MIT Licence 
 @contact: liangliangyy@gmail.com
-@site: https://www.lylinux.org/
+@site: https://www.lylinux.net/
 @software: PyCharm
 @file: commonapi.py
 @time: 2017/9/2 上午1:43
 """
 import requests
 import json
-from DjangoBlog.utils import logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class TuLing():
@@ -39,5 +41,5 @@ class TuLing():
             if str(jsons["code"]) == '100000':
                 return jsons["text"]
         except Exception as e:
-            logger.warn(e)
+            logger.error(e)
         return "哎呀，出错啦。"

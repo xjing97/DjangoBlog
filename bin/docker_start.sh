@@ -3,8 +3,8 @@ NAME="djangoblog" # Name of the application
 DJANGODIR=/code/DjangoBlog # Django project directory
 USER=root # the user to run as
 GROUP=root # the group to run as
-NUM_WORKERS=3 # how many worker processes should Gunicorn spawn
-DJANGO_SETTINGS_MODULE=DjangoBlog.settings # which settings file should Django use
+NUM_WORKERS=1 # how many worker processes should Gunicorn spawn
+#DJANGO_SETTINGS_MODULE=DjangoBlog.settings # which settings file should Django use
 DJANGO_WSGI_MODULE=DjangoBlog.wsgi # WSGI module name
 
 
@@ -14,7 +14,8 @@ echo "Starting $NAME as `whoami`"
 cd $DJANGODIR
 export DJANGO_SETTINGS_MODULE=$DJANGO_SETTINGS_MODULE
 export PYTHONPATH=$DJANGODIR:$PYTHONPATH
-
+#pip install -Ur requirements.txt -i http://pypi.douban.com/simple/  --trusted-host pypi.douban.com && \
+#        pip install gunicorn  -i http://pypi.douban.com/simple/ --trusted-host pypi.douban.com
 python manage.py makemigrations 
 python manage.py migrate
 python manage.py collectstatic --noinput 
@@ -27,5 +28,6 @@ exec gunicorn ${DJANGO_WSGI_MODULE}:application \
 --user=$USER --group=$GROUP \
 --bind 0.0.0.0:8000 \
 --log-level=debug \
---log-file=-
-
+--log-file=- \
+--worker-class gevent \
+--threads 4

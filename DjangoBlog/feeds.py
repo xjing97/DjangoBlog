@@ -7,7 +7,7 @@
 @author: liangliangyy
 @license: MIT Licence
 @contact: liangliangyy@gmail.com
-@site: https://www.lylinux.org/
+@site: https://www.lylinux.net/
 @software: PyCharm
 @file: feed.py
 @time: 2016/12/22 下午10:16
@@ -19,17 +19,15 @@ from django.conf import settings
 from django.utils.feedgenerator import Rss201rev2Feed
 from DjangoBlog.utils import CommonMarkdown
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import User
-from django.contrib.sites.models import Site
+from datetime import datetime
 
 
 class DjangoBlogFeed(Feed):
     feed_type = Rss201rev2Feed
 
-    description = settings.SITE_DESCRIPTION
-    feed_url = 'https://www.lylinux.net/feed'
-    title = "%s %s " % (settings.SITE_NAME, settings.SITE_DESCRIPTION)
-    link = "https://www.lylinux.net"
+    description = '大巧无工,重剑无锋.'
+    title = "且听风吟 大巧无工,重剑无锋. "
+    link = "/feed/"
 
     def author_name(self):
         return get_user_model().objects.first().nickname
@@ -47,8 +45,8 @@ class DjangoBlogFeed(Feed):
         return CommonMarkdown.get_markdown(item.body)
 
     def feed_copyright(self):
-        # print(Site.objects.get_current().name)
-        return "Copyright© 2017  " + settings.SITE_NAME
+        now = datetime.now()
+        return "Copyright© {year} 且听风吟".format(year=now.year)
 
     def item_link(self, item):
         return item.get_absolute_url()

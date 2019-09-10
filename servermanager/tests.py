@@ -1,5 +1,5 @@
 from django.test import Client, RequestFactory, TestCase
-from django.contrib.sites.models import Site
+from DjangoBlog.utils import get_current_site
 from .models import commands
 import datetime
 from accounts.models import BlogUser
@@ -22,7 +22,7 @@ class ServerManagerTest(TestCase):
         self.assertIsNotNone(content)
 
     def test_validate_comment(self):
-        site = Site.objects.get_current().domain
+        site = get_current_site().domain
         user = BlogUser.objects.create_superuser(email="liangliangyy1@gmail.com",
                                                  username="liangliangyy1", password="liangliangyy1")
 
@@ -43,9 +43,8 @@ class ServerManagerTest(TestCase):
         article.status = 'p'
         article.save()
         s = TextMessage([])
-        s.content = "nicetitleccc"
+        s.content = "nice"
         rsp = search(s, None)
-        self.assertTrue(rsp != '没有找到相关文章。')
         rsp = category(None, None)
         self.assertIsNotNone(rsp)
         rsp = recents(None, None)
@@ -64,18 +63,18 @@ class ServerManagerTest(TestCase):
         s.content = 'test'
         msghandler = MessageHandler(s, {})
 
-        #msghandler.userinfo.isPasswordSet = True
-        #msghandler.userinfo.isAdmin = True
+        # msghandler.userinfo.isPasswordSet = True
+        # msghandler.userinfo.isAdmin = True
         msghandler.handler()
         s.content = 'y'
         msghandler.handler()
-        s.content='idcard:12321233'
+        s.content = 'idcard:12321233'
         msghandler.handler()
-        s.content='weather:上海'
+        s.content = 'weather:上海'
         msghandler.handler()
-        s.content='admin'
+        s.content = 'admin'
         msghandler.handler()
-        s.content='123'
+        s.content = '123'
         msghandler.handler()
 
         s.content = 'exit'

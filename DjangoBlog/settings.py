@@ -19,16 +19,20 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.10/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
+SECRET_KEY = 'n9ceqv38)#&mwuat@(mjb_p%em$e8$qyr#fw9ot!=ba6lijx-6'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = True
-DEBUG = False
+DEBUG = True
+# DEBUG = False
 TESTING = len(sys.argv) > 1 and sys.argv[1] == 'test'
 
 # ALLOWED_HOSTS = []
-ALLOWED_HOSTS = ['www.lylinux.net', '127.0.0.1', 'example.com']
+ALLOWED_HOSTS = ['*', '127.0.0.1', 'example.com']
 # Application definition
+
+
+SITE_ROOT = os.path.dirname(os.path.abspath(__file__))
+SITE_ROOT = os.path.abspath(os.path.join(SITE_ROOT, '../'))
 
 INSTALLED_APPS = [
     # 'django.contrib.admin',
@@ -40,7 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
     'django.contrib.sitemaps',
-    'pagedown',
+    'mdeditor',
     'haystack',
     'blog',
     'accounts',
@@ -99,6 +103,7 @@ DATABASES = {
         'PASSWORD': os.environ.get('DJANGO_MYSQL_PASSWORD'),
         'HOST': os.environ.get('DJANGO_MYSQL_HOST'),
         'PORT': 3306,
+        'OPTIONS': {'charset': 'utf8mb4'},
     }
 }
 
@@ -137,18 +142,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.10/howto/static-files/
 
 
-SITE_ROOT = os.path.dirname(os.path.abspath(__file__))
-SITE_ROOT = os.path.abspath(os.path.join(SITE_ROOT, '../'))
-
 HAYSTACK_CONNECTIONS = {
     'default': {
         'ENGINE': 'DjangoBlog.whoosh_cn_backend.WhooshEngine',
         'PATH': os.path.join(os.path.dirname(__file__), 'whoosh_index'),
     },
 }
-# 自动更新搜索索引
+# Automatically update searching index
 HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
-# 允许使用用户名或密码登录
+# Allow user login with username and password
 AUTHENTICATION_BACKENDS = ['accounts.user_login_backend.EmailOrUsernameModelBackend']
 
 STATIC_ROOT = os.path.join(SITE_ROOT, 'collectedstatic')
@@ -162,26 +164,14 @@ LOGIN_URL = '/login/'
 TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 DATE_TIME_FORMAT = '%Y-%m-%d'
 
-SITE_NAME = '且听风吟'
-SITE_URL = 'http://www.lylinux.net'
-SITE_DESCRIPTION = '大巧无工,重剑无锋.'
-SITE_SEO_DESCRIPTION = '小站主要用来分享和记录学习经验,教程,记录个人生活的点滴以及一些随笔.'
-SITE_SEO_KEYWORDS = 'linux,apache,mysql,服务器,ubuntu,shell,web,csharp,.net,asp,mac,swift,python,django'
-ARTICLE_SUB_LENGTH = 300
-SHOW_GOOGLE_ADSENSE = False
-# bootstrap颜色样式
+# bootstrap color styles
 BOOTSTRAP_COLOR_TYPES = [
     'default', 'primary', 'success', 'info', 'warning', 'danger'
 ]
 
-# 侧边栏文章数目
-SIDEBAR_ARTICLE_COUNT = 10
-# 侧边栏评论数目
-SIDEBAR_COMMENT_COUNT = 5
-
-# 分页
+# paginate
 PAGINATE_BY = 10
-# http缓存时间
+# http cache timeout
 CACHE_CONTROL_MAX_AGE = 2592000
 # cache setting
 CACHES = {
@@ -197,35 +187,6 @@ CACHES = {
         'LOCATION': 'unique-snowflake',
     }
 }
-# CACHE_MIDDLEWARE_SECONDS = 60 * 60 * 10
-# CACHE_MIDDLEWARE_KEY_PREFIX = "djangoblog"
-# CACHE_MIDDLEWARE_ALIAS = 'default'
-
-# SESSION_ENGINE = "django.contrib.sessions.backends.cache"
-# SESSION_CACHE_ALIAS = 'default'
-
-OAHUTH = {
-    'sina': {
-        'appkey': os.environ.get('SINA_APP_KEY'),
-        'appsecret': os.environ.get('SINA_APP_SECRET'),
-        'callbackurl': 'http://www.lylinux.net/oauth/authorize?type=weibo'
-    },
-    'google': {
-        'appkey': os.environ.get('GOOGLE_APP_KEY'),
-        'appsecret': os.environ.get('GOOGLE_APP_SECRET'),
-        'callbackurl': 'http://www.lylinux.net/oauth/authorize?type=google'
-    },
-    'github': {
-        'appkey': os.environ.get('GITHUB_APP_KEY'),
-        'appsecret': os.environ.get('GITHUB_APP_SECRET'),
-        'callbackurl': 'http://www.lylinux.net/oauth/authorize?type=github'
-    },
-    'facebook': {
-        'appkey': os.environ.get('FACEBOOK_APP_KEY'),
-        'appsecret': os.environ.get('FACEBOOK_APP_SECRET'),
-        'callbackurl': 'http://www.lylinux.net/oauth/authorize?type=facebook'
-    }
-}
 
 SITE_ID = 1
 BAIDU_NOTIFY_URL = "http://data.zz.baidu.com/urls?site=https://www.lylinux.net&token=1uAOGrMsUm5syDGn"
@@ -233,29 +194,31 @@ BAIDU_NOTIFY_URL = "http://data.zz.baidu.com/urls?site=https://www.lylinux.net&t
 # Emial:
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
-EMAIL_USE_TLS = True
-# EMAIL_USE_SSL = True
+# EMAIL_USE_TLS = True
+EMAIL_USE_SSL = True
 
-EMAIL_HOST = 'smtp.zoho.com'
-EMAIL_PORT = 587
+EMAIL_HOST = 'smtp.mxhichina.com'
+EMAIL_PORT = 465
 EMAIL_HOST_USER = os.environ.get('DJANGO_EMAIL_USER')
 EMAIL_HOST_PASSWORD = os.environ.get('DJANGO_EMAIL_PASSWORD')
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SERVER_EMAIL = os.environ.get('DJANGO_EMAIL_USER')
-# 设置debug=false 未处理异常邮件通知
-ADMINS = [('liangliang', 'liangliangyy@gmail.com')]
-# 微信管理员密码(两次md5获得)
+# Setting debug=false did NOT handle except email notifications
+ADMINS = [('admin', 'admin@admin.com')]
+# WX ADMIN password(Two times md5)
 WXADMIN = '995F03AC401D6CABABAEF756FC4D43C7'
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'root': {
+        'level': 'INFO',
+        'handlers': ['console', 'log_file'],
+    },
     'formatters': {
         'verbose': {
-            'format': '[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d] %(message)s',
-        },
-        'simple': {
-            'format': '%(levelname)s %(asctime)s %(message)s'
-        },
+            'format': '[%(asctime)s] %(levelname)s [%(name)s.%(funcName)s:%(lineno)d %(module)s] %(message)s',
+        }
     },
     'filters': {
         'require_debug_false': {
@@ -277,7 +240,7 @@ LOGGING = {
             'level': 'DEBUG',
             'filters': ['require_debug_true'],
             'class': 'logging.StreamHandler',
-            'formatter': 'simple'
+            'formatter': 'verbose'
         },
         'null': {
             'class': 'logging.NullHandler',
@@ -298,7 +261,7 @@ LOGGING = {
             'handlers': ['mail_admins'],
             'level': 'ERROR',
             'propagate': False,
-        },
+        }
     }
 }
 
@@ -321,3 +284,6 @@ COMPRESS_CSS_FILTERS = [
 COMPRESS_JS_FILTERS = [
     'compressor.filters.jsmin.JSMinFilter'
 ]
+
+MEDIA_ROOT = os.path.join(SITE_ROOT, 'uploads')
+MEDIA_URL = '/media/'
